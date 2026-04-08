@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ShopEasy | Admin</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Nunito:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a th:href="@{/}" class="logo"><i class="fas fa-store"></i> ShopEasy</a>
+    <div class="nav-links">
+      <a th:href="@{/}"><i class="fas fa-home"></i> Home</a>
+      <a th:href="@{/admin}" class="active"><i class="fas fa-shield-alt"></i> Admin</a>
+      <a th:href="@{/logout}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-title">
+  <h2><i class="fas fa-cog"></i> Admin Panel</h2>
+  <p>Manage your store</p>
+</div>
+
+<!-- Stats Row -->
+<div class="admin-stats">
+  <div class="stat-card">
+    <i class="fas fa-boxes"></i>
+    <div><span th:text="${productCount}">0</span><p>Products</p></div>
+  </div>
+  <div class="stat-card">
+    <i class="fas fa-receipt"></i>
+    <div><span th:text="${orderCount}">0</span><p>Orders</p></div>
+  </div>
+  <div class="stat-card">
+    <i class="fas fa-rupee-sign"></i>
+    <div><span>₹<span th:text="${#numbers.formatInteger(totalRevenue, 1, 'COMMA')}">0</span></span><p>Revenue</p></div>
+  </div>
+</div>
+
+<div class="form-alert success show" th:if="${success}" th:text="${success}"></div>
+<div class="form-alert error show"   th:if="${error}"   th:text="${error}"></div>
+
+<section class="admin-section">
+
+  <!-- ADD PRODUCT FORM -->
+  <div class="admin-form-card">
+    <h3><i class="fas fa-plus-circle"></i> Add New Product</h3>
+    <form th:action="@{/admin/products/add}" method="post" th:object="${newProduct}">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+      <div class="form-group">
+        <label>Product Name *</label>
+        <input type="text" th:field="*{name}" placeholder="e.g. Wireless Earbuds"/>
+        <span class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></span>
+      </div>
+      <div class="form-group">
+        <label>Price (₹) *</label>
+        <input type="number" th:field="*{price}" placeholder="e.g. 999" step="0.01"/>
+        <span class="field-error" th:if="${#fields.hasErrors('price')}" th:errors="*{price}"></span>
+      </div>
+      <div class="form-group">
+        <label>Category *</label>
+        <select th:field="*{category}">
+          <option value="electronics">Electronics</option>
+          <option value="clothing">Clothing</option>
+          <option value="accessories">Accessories</option>
+          <option value="home">Home</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Image URL *</label>
+        <input type="url" th:field="*{image}" placeholder="https://..."/>
+        <small>Tip: Use images from unsplash.com</small>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea th:field="*{description}" rows="2" placeholder="Short product description..."></textarea>
+      </div>
+      <button type="submit" class="btn-place-order">
+        <i class="fas fa-plus"></i> Add Product
+      </button>
+    </form>
+  </div>
+
+  <!-- PRODUCT LIST -->
+  <div class="admin-list-card">
+    <h3><i class="fas fa-boxes"></i> Products (<span th:text="${productCount}">0</span>)</h3>
+    <div class="admin-prod-list">
+      <p th:if="${products.isEmpty()}" style="color:#999;text-align:center;padding:20px">No products yet.</p>
+      <div th:each="p : ${products}" class="admin-prod-row">
+        <img th:src="${p.image}" th:alt="${p.name}" onerror="this.src='https://via.placeholder.com/50'"/>
+        <div class="admin-prod-info">
+          <strong th:text="${p.name}">Name</strong>
+          <span>₹<span th:text="${p.price}">0</span> &bull; <span th:text="${p.category}">cat</span></span>
+        </div>
+        <form th:action="@{/admin/products/delete/{id}(id=${p.id})}" method="post"
+              onsubmit="return confirm('Delete this product?')">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <button type="submit" class="btn-delete"><i class="fas fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ORDERS TABLE -->
+<section style="max-width:1200px;margin:2rem auto;padding:0 1rem;">
+  <h3 style="margin-bottom:1rem;"><i class="fas fa-list"></i> All Orders</h3>
+  <div style="overflow-x:auto;">
+    <table class="orders-table">
+      <thead>
+        <tr>
+          <th>#</th><th>Customer</th><th>Phone</th><th>City</th>
+          <th>Total</th><th>Payment</th><th>Status</th><th>Update</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:if="${orders.isEmpty()}">
+          <td colspan="8" style="text-align:center;color:#999;padding:1rem;">No orders yet.</td>
+        </tr>
+        <tr th:each="o : ${orders}">
+          <td th:text="${o.id}">1</td>
+          <td th:text="${o.customerName}">Name</td>
+          <td th:text="${o.customerPhone}">Phone</td>
+          <td th:text="${o.city}">City</td>
+          <td>₹<span th:text="${#numbers.formatInteger(o.totalAmount,1,'COMMA')}">0</span></td>
+          <td th:text="${o.paymentMethod}">COD</td>
+          <td><span class="status-badge" th:classappend="${'status-' + o.status.name().toLowerCase()}"
+                    th:text="${o.status}">PENDING</span></td>
+          <td>
+            <form th:action="@{/admin/orders/status/{id}(id=${o.id})}" method="post" style="display:flex;gap:0.3rem;">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+              <select name="status" class="price-select" style="font-size:0.75rem;padding:0.2rem;">
+                <option th:each="s : ${T(com.shopeasy.model.Order.OrderStatus).values()}"
+                        th:value="${s}" th:text="${s}" th:selected="${s == o.status}"></option>
+              </select>
+              <button type="submit" class="btn-add" style="padding:0.2rem 0.5rem;font-size:0.75rem;">
+                <i class="fas fa-save"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>© 2025 ShopEasy — Built with Spring Boot ❤️</p>
+</footer>
+</body>
+</html>
